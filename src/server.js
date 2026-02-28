@@ -20,9 +20,11 @@ app.get("/health", (req, res) => {
 });
 
 const authRoutes = require("./routes/auth.route.js");
+const abhaRoutes = require("./routes/abha.route.js");
 
-// Routes (to be added later)
+// Routes 
 app.use("/api/auth", authRoutes);
+app.use("/api/abha", abhaRoutes);
 
 // 404
 app.use((req, res) => {
