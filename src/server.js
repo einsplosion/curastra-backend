@@ -8,13 +8,13 @@ const { testConnection } = require("./config/db");
 
 const app = express();
 
-// Middleware
+// middleware
 app.use(helmet());
 app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
 
-// Health check
+// health check
 app.get("/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
@@ -23,7 +23,7 @@ const authRoutes = require("./routes/auth.route.js");
 const abhaRoutes = require("./routes/abha.route.js");
 const recordRoutes = require("./routes/record.route.js");
 
-// Routes 
+// routes 
 app.use("/api/auth", authRoutes);
 app.use("/api/abha", abhaRoutes);
 app.use("/api/records", recordRoutes);
@@ -33,7 +33,7 @@ app.use((req, res) => {
   res.status(404).json({ error: "Route not found" });
 });
 
-// Global error handler
+// global error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.status || 500).json({

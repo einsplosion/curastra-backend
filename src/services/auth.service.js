@@ -4,6 +4,7 @@ const { pool } = require("../config/db.js");
 
 const SALT_ROUNDS = 12;
 
+// register user logic
 exports.registerUser = async ({ email, password, name }) => {
   if (!email || !password || !name) {
     const error = new Error("All fields are required");
@@ -34,6 +35,8 @@ exports.registerUser = async ({ email, password, name }) => {
   return result.rows[0];
 };
 
+
+// login user logic
 exports.loginUser = async ({ email, password }) => {
   if (!email || !password) {
     const error = new Error("Email and password required");

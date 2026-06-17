@@ -16,7 +16,7 @@ exports.enrollInitiate = async (req, res, next) => {
       message: "OTP sent to Aadhaar-linked mobile number",
     });
   } catch (err) {
-    next(err);
+      next(err);
   }
 };
 

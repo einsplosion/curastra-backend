@@ -32,16 +32,16 @@ const enrollmentRequestOtp = async (aadhaarNumber) => {
   
       return response.data;
     } catch (err) {
-      console.error("ABHA OTP request failed:", err.response?.data || err.message);
-  
-      const abdmMessage =
-        err.response?.data?.errorDetails?.[0]?.message ||
-        err.response?.data?.message ||
-        "Failed to request ABHA OTP";
-  
-      const error = new Error(abdmMessage);
-      error.status = err.response?.status || 500;
-      throw error;
+        console.error("ABHA OTP request failed:", err.response?.data || err.message);
+    
+        const abdmMessage =
+          err.response?.data?.errorDetails?.[0]?.message ||
+          err.response?.data?.message ||
+          "Failed to request ABHA OTP";
+    
+        const error = new Error(abdmMessage);
+        error.status = err.response?.status || 500;
+        throw error;
     }
 };
 
@@ -77,7 +77,7 @@ const enrolByAadhaar = async (userId, txnId, otp, mobile) => {
       const token = await getGatewayToken();
   
       const response = await axios.post(
-        `${BASE}/v3/enrollment/enrol/byAadhaar`,
+        `${BASE}/v3/enrollment/enrol/byAadhaar`, 
         {
           authData: {
             authMethods: ["otp"],

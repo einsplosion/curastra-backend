@@ -45,7 +45,7 @@ exports.getRecords = async (req, res, next) => {
     res.json({ records });
 
   } catch (err) {
-    next(err);
+      next(err);
   }
 };
 
@@ -66,7 +66,7 @@ exports.getRecordById = async (req, res, next) => {
     res.json({ record });
 
   } catch (err) {
-    next(err);
+      next(err);
   }
 };
 
@@ -83,6 +83,6 @@ exports.deleteRecord = async (req, res, next) => {
     );
     res.json(result);
   } catch (err) {
-    next(err);
+    next(err); 
   }
 };
