@@ -19,7 +19,7 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-const authRoutes = require("./routes/auth.route.js"); 
+const authRoutes = require("./routes/auth.route.js");
 const abhaRoutes = require("./routes/abha.route.js");
 const recordRoutes = require("./routes/record.route.js");
 
