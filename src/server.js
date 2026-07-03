@@ -46,7 +46,7 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-const startServer = async () => {
+const startServer = async () => { 
   await testConnection();  // Ensure DB is alive first
 
   app.listen(PORT, () => {
