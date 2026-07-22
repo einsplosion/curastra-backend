@@ -1,4 +1,5 @@
 const axios = require("axios");
+const logger = require("../config/logger.js");
 
 let cachedToken = null;
 let tokenExpiresAt = null;
@@ -31,9 +32,8 @@ const fetchNewToken = async () => {
       expiresIn: response.data.expiresIn,
     };
   } catch (err) {
-    console.error(
-      "ABDM gateway token fetch failed:",
-      err.response?.data || err.message
+    logger.error(
+      "ABDM gateway token fetch failed:", {error: err.response?.data || err.message}
     );
     throw new Error("Failed to fetch ABDM gateway token");
   }
@@ -48,13 +48,13 @@ const getGatewayToken = async () => {
     return cachedToken;
   }
 
-  console.log("Fetching new ABDM gateway token...");
+  logger.info("Fetching new ABDM gateway token...");
   const { token, expiresIn } = await fetchNewToken();
 
   cachedToken = token;
   tokenExpiresAt = now + expiresIn * 1000;
 
-  console.log(`Gateway token cached, expires in ${expiresIn}s`);
+  logger.info(`Gateway token cached, expires in ${expiresIn}s`);
   return cachedToken;
 };
 

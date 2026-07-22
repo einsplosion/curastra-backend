@@ -4,7 +4,8 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 
-const { testConnection } = require("./config/db");
+const { testConnection } = require("./config/db");  
+const logger = require("./config/logger.js");
 
 const app = express();
 
@@ -35,12 +36,14 @@ app.use((req, res) => {
 
 // global error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(err.status || 500).json({
-    error:
-      process.env.NODE_ENV === "production"
+  logger.error(err.stack || err.message || err);
+  const statusCode = typeof err.status === "number" ? err.status : 500;
+  res.status(statusCode).json({
+    success: false,
+    message:
+      process.env.NODE_ENV === "production" && statusCode === 500
         ? "Internal server error"
-        : err.message,
+        : err.message || "An unexpected error occurred",
   });
 });
 
@@ -50,11 +53,11 @@ const startServer = async () => {
   await testConnection();  // Ensure DB is alive first
 
   app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    logger.info(`Server running on port ${PORT}`);
   });
 };
 
 startServer().catch((err) => {
-  console.error("Failed to start server:", err);
+  logger.error("Failed to start server:", { error: err.stack });
   process.exit(1);
 });

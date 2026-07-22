@@ -1,4 +1,5 @@
 const { Pool } = require("pg");
+const logger = require("./logger.js");
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -10,17 +11,17 @@ const pool = new Pool({
 });
 
 pool.on("error", (err) => {
-  console.error("Unexpected database error:", err);
+  logger.error("Unexpected database error", { error: err.message })
   process.exit(1);
 });
 
 const testConnection = async () => {
   try {
     const client = await pool.connect();
-    console.log("Database connected");
+    logger.info("Database connected")
     client.release();
   } catch (err) {
-    console.error("Database connection failed:", err);
+    logger.error("Database connection failed", { error: err.message })
     process.exit(1);
   }
 };

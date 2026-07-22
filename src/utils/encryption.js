@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const axios = require("axios");
 const buildAbhaHeaders = require("./abhaHeaders.js");
 const { getGatewayToken } = require("../services/gatewayToken.service.js");
+const logger = require("../config/logger.js");
 
 let cachedPublicKey = null;
 let keyFetchedAt = null;
@@ -39,9 +40,8 @@ const getAbdmPublicKey = async () => {
     return cachedPublicKey;
 
   } catch (err) {
-    console.error(
-      "Failed to fetch ABDM public key:",
-      err.response?.data || err.message
+    logger.error(
+      "Failed to fetch ABDM public key:", { error: err.response?.data || err.message }
     );
     throw new Error("Failed to fetch ABDM public key");
   }
