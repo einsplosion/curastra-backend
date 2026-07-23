@@ -9,6 +9,9 @@ const logger = require("./config/logger.js");
 
 const app = express();
 
+// trust proxy (required for Render / reverse proxies with express-rate-limit)
+app.set("trust proxy", 1);
+
 // middleware
 app.use(helmet());
 app.use(cors());
