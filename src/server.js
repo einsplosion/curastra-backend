@@ -40,10 +40,8 @@ app.use((err, req, res, next) => {
   const statusCode = typeof err.status === "number" ? err.status : 500;
   res.status(statusCode).json({
     success: false,
-    message:
-      process.env.NODE_ENV === "production" && statusCode === 500
-        ? "Internal server error"
-        : err.message || "An unexpected error occurred",
+    message: err.message || "An unexpected error occurred",
+    ...(process.env.NODE_ENV === "production" ? {} : { stack: err.stack }),
   });
 });
 
