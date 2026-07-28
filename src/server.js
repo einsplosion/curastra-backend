@@ -4,7 +4,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 
-const { testConnection } = require("./config/db");  
+const { testConnection } = require("./config/db");
 const logger = require("./config/logger.js");
 
 const app = express();
@@ -24,7 +24,10 @@ app.get("/health", (req, res) => {
 });
 
 const authRoutes = require("./routes/auth.route.js");
-const abhaRoutes = require("./routes/abha.route.js");
+const abhaRoutes =
+  process.env.ABHA_MODE === "mock" || process.env.NODE_ENV === "production"
+    ? require("./mockABHA/mockAbha.route.js")
+    : require("./routes/abha.route.js");
 const recordRoutes = require("./routes/record.route.js");
 
 // routes 
@@ -50,7 +53,7 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-const startServer = async () => { 
+const startServer = async () => {
   await testConnection();  // Ensure DB is alive first
 
   app.listen(PORT, () => {

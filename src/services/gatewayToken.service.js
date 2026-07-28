@@ -11,8 +11,12 @@ const fetchNewToken = async () => {
       throw new Error("ABDM client credentials not configured");
     }
 
+    const sessionUrl =
+      process.env.ABDM_SESSION_URL ||
+      "https://dev.abdm.gov.in/gateway/v0.5/sessions";
+
     const response = await axios.post(
-      "https://dev.abdm.gov.in/gateway/v0.5/sessions",
+      sessionUrl,
       {
         clientId: process.env.ABDM_CLIENT_ID,
         clientSecret: process.env.ABDM_CLIENT_SECRET,
@@ -22,6 +26,8 @@ const fetchNewToken = async () => {
         headers: {
           "Accept": "application/json",
           "Content-Type": "application/json",
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         },
         timeout: 10000,
       }
@@ -33,7 +39,7 @@ const fetchNewToken = async () => {
     };
   } catch (err) {
     logger.error(
-      "ABDM gateway token fetch failed:", {error: err.response?.data || err.message}
+      "ABDM gateway token fetch failed:", { error: err.response?.data || err.message }
     );
     throw new Error("Failed to fetch ABDM gateway token");
   }
