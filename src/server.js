@@ -7,6 +7,8 @@ const morgan = require("morgan");
 const { testConnection } = require("./config/db");
 const logger = require("./config/logger.js");
 
+const auditLog = require("./middlewares/auditLog.middleware.js");
+
 const app = express();
 
 // trust proxy (required for Render / reverse proxies with express-rate-limit)
@@ -17,6 +19,7 @@ app.use(helmet());
 app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
+app.use(auditLog);
 
 // health check
 app.get("/health", (req, res) => {
