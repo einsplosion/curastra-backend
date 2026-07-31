@@ -54,10 +54,13 @@ app.use((err, req, res, next) => {
   });
 });
 
+const { checkAceAvailability } = require("./utils/aceClient.js");
+
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
-  await testConnection();  // Ensure DB is alive first
+  await testConnection();  // ensure DB is alive first
+  await checkAceAvailability(); // ACE service health ping
 
   app.listen(PORT, () => {
     logger.info(`Server running on port ${PORT}`);

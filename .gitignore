@@ -120,3 +120,6 @@ dist
 .agents
 
 # End of https://mrkandreev.name/snippets/gitignore-generator/#Node
+
+#ace repo
+active-care-engine/
