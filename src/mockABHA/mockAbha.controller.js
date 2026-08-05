@@ -1,6 +1,6 @@
 const mockAbhaService = require("./mockAbha.service.js");
 
-// POST /abha/enroll/initiate (Single-step instant mock ABHA linking)
+// POST /abha/enroll/initiate
 exports.enrollInitiate = async (req, res, next) => {
   try {
     const { aadhaarNumber, profile_id } = req.body;

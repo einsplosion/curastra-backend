@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "backend for Curastra - an AI powered health assistant app!",
   "license": "ISC",
-  "author": "einsplosion",
+  "author": "einsplosion - Anurag",
   "type": "commonjs",
-  "main": "index.js",
+  "main": "src/server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon src/server.js",

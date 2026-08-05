@@ -28,7 +28,7 @@ app.get("/health", (req, res) => {
 
 const authRoutes = require("./routes/auth.route.js");
 const abhaRoutes =
-  process.env.ABHA_MODE === "mock" || process.env.NODE_ENV === "production"
+  process.env.ABHA_MODE === "mock"
     ? require("./mockABHA/mockAbha.route.js")
     : require("./routes/abha.route.js");
 const recordRoutes = require("./routes/record.route.js");

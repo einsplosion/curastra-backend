@@ -11,11 +11,13 @@ exports.enrollInitiate = async (req, res, next) => {
     }
 
     const targetProfileId = profile_id || req.profile?.id;
+    const token = req.headers.authorization ? req.headers.authorization.split(" ")[1] : null;
 
     const data = await abhaService.enrollmentRequestOtp(
       req.user.id,
       aadhaarNumber,
-      targetProfileId
+      targetProfileId,
+      token
     );
 
     return res.status(200).json({
@@ -43,13 +45,15 @@ exports.enrollVerify = async (req, res, next) => {
     }
 
     const targetProfileId = profile_id || req.profile?.id;
+    const token = req.headers.authorization ? req.headers.authorization.split(" ")[1] : null;
 
     const result = await abhaService.enrolByAadhaar(
       req.user.id,
       txnId,
       otp,
       mobileNumber,
-      targetProfileId
+      targetProfileId,
+      token
     );
 
     return res.status(200).json({

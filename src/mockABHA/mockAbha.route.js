@@ -7,7 +7,7 @@ const { enrollInitiateSchema } = require("../validations/abha.validation.js");
 
 const router = express.Router();
 
-// Single-step instant mock ABHA linking endpoint
+// mock ABHA linking endpoint
 router.post(
   "/enroll/initiate",
   auth,

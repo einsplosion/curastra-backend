@@ -1,34 +1,10 @@
 const axios = require("axios");
 const { pool } = require("../config/db.js");
 const logger = require("../config/logger.js");
-const buildAbhaHeaders = require("../utils/abhaHeaders.js");
-const { getGatewayToken } = require("./gatewayToken.service.js");
-const { encryptForAbdm } = require("../utils/encryption.js");
+
 
 // CONSTANTS
-const BASE = process.env.ABDM_BASE_URL;
 const ABDM_TIMEOUT = 30000; // 30s timeout — ABDM sandbox gateway can be slow
-
-// HELPER FUNCTIONS
-
-// formats current timestamp as "YYYY-MM-DD HH:MM:SS", abdm does not accept ISO
-const getSimpleTimestamp = () => {
-  const now = new Date();
-  const pad = (n) => n.toString().padStart(2, "0");
-  return (
-    now.getFullYear() +
-    "-" +
-    pad(now.getMonth() + 1) +
-    "-" +
-    pad(now.getDate()) +
-    " " +
-    pad(now.getHours()) +
-    ":" +
-    pad(now.getMinutes()) +
-    ":" +
-    pad(now.getSeconds())
-  );
-};
 
 
 // resolves and verifies profile ownership
@@ -84,6 +60,8 @@ const checkAbhaAvailability = async (abhaNumber, targetProfileId, client = pool)
   return { status: "LINKED_TO_OTHER", profile: existingProfile };
 };
 
+
+
 // ENROLLMENT REQUEST OTP
 
 // 1. validate inputs and verify profile ownership
@@ -91,14 +69,18 @@ const checkAbhaAvailability = async (abhaNumber, targetProfileId, client = pool)
 // 3. call ABDM Gateway to trigger OTP to Aadhaar-linked mobile
 // 4. return txnId for Step 2
 
-const enrollmentRequestOtp = async (userId, aadhaarNumber, profileId = null) => {
+const ABHA_SERVICE_URL =
+  process.env.ABHA_SERVICE_URL ||
+  "https://curastra-abha-service-ewgafcb5eed8ccby.centralindia-01.azurewebsites.net";
+
+const enrollmentRequestOtp = async (userId, aadhaarNumber, profileId = null, token = null) => {
   if (!aadhaarNumber || aadhaarNumber.length !== 12) {
     const error = new Error("Valid 12-digit Aadhaar number is required");
     error.status = 400;
     throw error;
   }
 
-  // pre-check profile ownership & existence before making gateway call
+  // pre-check profile ownership & existence
   const targetProfile = await resolveAndVerifyProfile(userId, profileId);
 
   if (targetProfile.abha_linked) {
@@ -108,33 +90,27 @@ const enrollmentRequestOtp = async (userId, aadhaarNumber, profileId = null) => 
   }
 
   try {
-    const encryptedAadhaar = await encryptForAbdm(aadhaarNumber);
-    const token = await getGatewayToken();
-
-    logger.info("Requesting ABHA enrollment OTP", {
+    logger.info("Requesting ABHA enrollment OTP via Azure Microservice", {
       userId,
       profileId: targetProfile.id,
       isPrimary: targetProfile.is_primary,
-      // aadhaar omitted for PII compliance
     });
 
     const response = await axios.post(
-      `${BASE}/v3/enrollment/request/otp`,
+      `${ABHA_SERVICE_URL}/api/abha/enroll/initiate`,
+      { aadhaarNumber },
       {
-        scope: ["abha-enrol"],
-        loginHint: "aadhaar",
-        loginId: encryptedAadhaar,
-        otpSystem: "aadhaar",
-      },
-      {
-        headers: buildAbhaHeaders(token),
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
         timeout: ABDM_TIMEOUT,
       }
     );
 
     return {
-      txnId: response.data.txnId,
-      message: "OTP sent to Aadhaar-linked mobile number",
+      txnId: response.data.data.txnId,
+      message: response.data.message || "OTP sent to Aadhaar-linked mobile number",
     };
 
   } catch (err) {
@@ -143,11 +119,9 @@ const enrollmentRequestOtp = async (userId, aadhaarNumber, profileId = null) => 
     }
 
     const rawMessage =
+      err.response?.data?.message ||
       err.response?.data?.errorDetails?.[0]?.message ||
       err.response?.data?.details?.[0]?.message ||
-      err.response?.data?.message ||
-      err.response?.data?.error?.message ||
-      (typeof err.response?.data === "string" ? err.response.data : null) ||
       err.message ||
       "Failed to request ABHA OTP. Please try again.";
 
@@ -171,15 +145,14 @@ const enrollmentRequestOtp = async (userId, aadhaarNumber, profileId = null) => 
 // ENROLL BY AADHAAR
 
 // 1. validate inputs and resolve target profile
-// 2. encrypt OTP using RSA-OAEP SHA-1 spec
-// 3. submit to ABDM for verification
-// 4. extract ABHA details from gateway response
-// 5. open atomic database transaction
-// 6. verify ABHA number availability (prevent cross-profile duplicates / account takeover)
-// 7. update target profile with abha_number, abha_address, abha_linked = TRUE
-// 8. commit transaction and return updated profile data
+// 2. call Stateless Azure ABHA microservice
+// 3. extract ABHA details from gateway response
+// 4. open atomic database transaction in Neon DB
+// 5. verify ABHA number availability (prevent cross-profile duplicates / account takeover)
+// 6. update target profile with abha_number, abha_address, abha_linked = TRUE
+// 7. commit transaction and return updated profile data
 
-const enrolByAadhaar = async (userId, txnId, otp, mobile, profileId = null) => {
+const enrolByAadhaar = async (userId, txnId, otp, mobile, profileId = null, token = null) => {
   if (!txnId || !otp) {
     const error = new Error("txnId and OTP are required");
     error.status = 400;
@@ -196,47 +169,35 @@ const enrolByAadhaar = async (userId, txnId, otp, mobile, profileId = null) => {
   }
 
   try {
-    const encryptedOtp = await encryptForAbdm(otp);
-    const token = await getGatewayToken();
-
-    logger.info("Verifying ABHA enrollment OTP", {
+    logger.info("Verifying ABHA enrollment OTP via Azure Microservice", {
       userId,
       profileId: targetProfile.id,
     });
 
     const response = await axios.post(
-      `${BASE}/v3/enrollment/enrol/byAadhaar`,
+      `${ABHA_SERVICE_URL}/api/abha/enroll/verify`,
       {
-        authData: {
-          authMethods: ["otp"],
-          otp: {
-            timeStamp: getSimpleTimestamp(),
-            txnId,
-            otpValue: encryptedOtp,
-            mobile: mobile || "",
-          },
-        },
-        consent: {
-          code: "abha-enrollment",
-          version: "1.4",
-        },
+        txnId,
+        otp,
+        mobileNumber: mobile || "",
       },
       {
-        headers: buildAbhaHeaders(token),
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
         timeout: ABDM_TIMEOUT,
       }
     );
 
-    const data = response.data;
-
-    // extract abha details from abdm gateway response
-    const abhaNumber = data?.ABHAProfile?.ABHANumber;
-    const abhaAddress = data?.ABHAProfile?.phrAddress?.[0] || null;
+    const data = response.data?.data;
+    const abhaNumber = data?.abhaNumber;
+    const abhaAddress = data?.abhaAddress || null;
     const isNew = data?.isNew || false;
-    const name = `${data?.ABHAProfile?.firstName || ""} ${data?.ABHAProfile?.lastName || ""}`.trim();
+    const name = data?.name || "";
 
     if (!abhaNumber) {
-      logger.error("ABHA number not returned by ABDM gateway", {
+      logger.error("ABHA number not returned by ABHA microservice", {
         userId,
         profileId: targetProfile.id,
       });
@@ -245,7 +206,7 @@ const enrolByAadhaar = async (userId, txnId, otp, mobile, profileId = null) => {
       throw error;
     }
 
-    // using transaction for DB writes
+    // using transaction for DB writes in Neon
     const client = await pool.connect();
 
     try {
@@ -291,7 +252,7 @@ const enrolByAadhaar = async (userId, txnId, otp, mobile, profileId = null) => {
 
       await client.query("COMMIT");
 
-      logger.info("ABHA enrollment successful", {
+      logger.info("ABHA enrollment successful and persisted to Neon DB", {
         userId,
         profileId: targetProfile.id,
         isNew,
@@ -326,11 +287,9 @@ const enrolByAadhaar = async (userId, txnId, otp, mobile, profileId = null) => {
     }
 
     const rawMessage =
+      err.response?.data?.message ||
       err.response?.data?.errorDetails?.[0]?.message ||
       err.response?.data?.details?.[0]?.message ||
-      err.response?.data?.message ||
-      err.response?.data?.error?.message ||
-      (typeof err.response?.data === "string" ? err.response.data : null) ||
       err.message ||
       "Failed to complete ABHA enrollment. Please try again.";
 
