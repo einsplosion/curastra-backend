@@ -238,6 +238,8 @@ CREATE TABLE public.profiles (
     created_at timestamp without time zone DEFAULT now(),
     height_cm numeric,
     is_onboarding_complete boolean DEFAULT false NOT NULL,
+    is_archived boolean DEFAULT false NOT NULL,
+    CONSTRAINT unique_profile_name_per_user UNIQUE (owner_user_id, name),
     CONSTRAINT profiles_blood_group_check CHECK ((blood_group = ANY (ARRAY['A+'::text, 'A-'::text, 'B+'::text, 'B-'::text, 'AB+'::text, 'AB-'::text, 'O+'::text, 'O-'::text, 'unknown'::text]))),
     CONSTRAINT profiles_gender_check CHECK ((gender = ANY (ARRAY['male'::text, 'female'::text, 'other'::text, 'prefer_not_to_say'::text]))),
     CONSTRAINT profiles_relationship_check CHECK ((relationship = ANY (ARRAY['self'::text, 'spouse'::text, 'parent'::text, 'child'::text, 'sibling'::text, 'other'::text])))

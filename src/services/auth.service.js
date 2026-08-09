@@ -258,7 +258,7 @@ const loginUser = async (email, password) => {
   } catch (err) {
     await client.query("ROLLBACK");
 
-    // Don't log 401s as errors — they are expected
+    // don't log 401s as errors — they are expected
     if (err.status !== 401) {
       logger.error("Login failed", { error: err.message });
     }
@@ -389,7 +389,7 @@ const logoutUser = async (rawRefreshToken) => {
   uses a transaction to ensure profile + vitals are updated atomically
 */
 const completeOnboarding = async (userId, profileId, data) => {
-  const { date_of_birth, gender, blood_group, height_cm, weight } = data;
+  const { date_of_birth, gender, blood_group, height_cm, weight, allergies } = data;
 
   const client = await pool.connect();
 
@@ -404,10 +404,19 @@ const completeOnboarding = async (userId, profileId, data) => {
          gender = COALESCE($2, gender),
          blood_group = COALESCE($3, blood_group),
          height_cm = COALESCE($4, height_cm),
+         allergies = COALESCE($5, allergies),
          is_onboarding_complete = TRUE
-       WHERE id = $5 AND owner_user_id = $6
+       WHERE id = $6 AND owner_user_id = $7
        RETURNING *`,
-      [date_of_birth || null, gender || null, blood_group || null, height_cm || null, profileId, userId]
+      [
+        date_of_birth || null,
+        gender || null,
+        blood_group || null,
+        height_cm || null,
+        Array.isArray(allergies) ? allergies : null,
+        profileId,
+        userId,
+      ]
     );
 
     if (profileResult.rows.length === 0) {

@@ -61,4 +61,16 @@ const generalLimiter = rateLimit({
     legacyHeaders: false
 });
 
-module.exports = { loginLimiter, registerLimiter, abhaLimiter, generalLimiter, refreshLimiter };
+// CHAT LIMITER
+const chatLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 15, // 15 chat messages per minute
+    message: {
+        success: false,
+        message: "Chat rate limit exceeded. Please wait a moment before sending more messages."
+    },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+module.exports = { loginLimiter, registerLimiter, abhaLimiter, generalLimiter, refreshLimiter, chatLimiter };

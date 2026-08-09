@@ -32,11 +32,31 @@ const abhaRoutes =
     ? require("./mockABHA/mockAbha.route.js")
     : require("./routes/abha.route.js");
 const recordRoutes = require("./routes/record.route.js");
+const carePlanRoutes = require("./routes/carePlan.route.js");
+const vitalsRoutes = require("./routes/vitals.route.js");
+const labParameterRoutes = require("./routes/labParameter.route.js");
+const medicationRoutes = require("./routes/medication.route.js");
+const reminderRoutes = require("./routes/reminder.route.js");
+const chatRoutes = require("./routes/chat.route.js");
+const caregiverRoutes = require("./routes/caregiver.route.js");
+const profileRoutes = require("./routes/profile.route.js");
+const emergencyCardRoutes = require("./routes/emergencyCard.route.js");
 
 // routes 
 app.use("/api/auth", authRoutes);
 app.use("/api/abha", abhaRoutes);
 app.use("/api/records", recordRoutes);
+app.use("/api/care-plans", carePlanRoutes);
+app.use("/api/metrics", vitalsRoutes);
+app.use("/api/vitals", vitalsRoutes);
+app.use("/api/lab-parameters", labParameterRoutes);
+app.use("/api/lab-results", labParameterRoutes);
+app.use("/api/medications", medicationRoutes);
+app.use("/api/reminders", reminderRoutes);
+app.use("/api/chat", chatRoutes);
+app.use("/api/caregivers", caregiverRoutes);
+app.use("/api/profiles", profileRoutes);
+app.use("/api/emergency-card", emergencyCardRoutes);
 
 // 404
 app.use((req, res) => {
@@ -66,6 +86,15 @@ const startServer = async () => {
     logger.info(`Server running on port ${PORT}`);
   });
 };
+
+// process safety handlers to prevent unhandled errors from crashing the server
+process.on("unhandledRejection", (reason, promise) => {
+  logger.error("Unhandled Promise Rejection", { reason: reason?.stack || reason });
+});
+
+process.on("uncaughtException", (err) => {
+  logger.error("Uncaught Exception", { error: err?.stack || err });
+});
 
 startServer().catch((err) => {
   logger.error("Failed to start server:", { error: err.stack });

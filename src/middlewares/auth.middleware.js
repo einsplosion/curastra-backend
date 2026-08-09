@@ -57,31 +57,13 @@ const auth = async (req, res, next) => {
       });
     }
 
-    // 3. fetch user & primary profile
-    const result = await pool.query(
-      `SELECT
-         u.id, u.name, u.email, u.created_at,
-         p.id AS profile_id,
-         p.name AS profile_name,
-         p.relationship,
-         p.is_primary,
-         p.gender,
-         p.date_of_birth,
-         p.blood_group,
-         p.height_cm,
-         p.abha_number,
-         p.abha_address,
-         p.abha_linked,
-         p.is_onboarding_complete
-       FROM users u
-       LEFT JOIN profiles p
-         ON p.owner_user_id = u.id AND p.is_primary = TRUE
-       WHERE u.id = $1`,
+    // 3. fetch user
+    const userRes = await pool.query(
+      `SELECT id, name, email, created_at FROM users WHERE id = $1`,
       [decoded.id]
     );
 
-    if (result.rows.length === 0) {
-      // user was deleted after token was issued
+    if (userRes.rows.length === 0) {
       return res.status(401).json({
         success: false,
         message: "User no longer exists.",
@@ -89,31 +71,63 @@ const auth = async (req, res, next) => {
       });
     }
 
-    const row = result.rows[0];
+    const user = userRes.rows[0];
+    req.user = user;
 
-    // 4. attach user to request
-    req.user = {
-      id: row.id,
-      name: row.name,
-      email: row.email,
-      created_at: row.created_at,
-    };
+    // 4. determine requested profile (X-Profile-ID header or fallback to Primary)
+    const targetProfileId = req.headers["x-profile-id"] || req.headers["X-Profile-ID"];
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-    // 5. attach primary profile to request
-    req.profile = {
-      id: row.profile_id,
-      name: row.profile_name,
-      relationship: row.relationship,
-      is_primary: row.is_primary,
-      gender: row.gender,
-      date_of_birth: row.date_of_birth,
-      blood_group: row.blood_group,
-      height_cm: row.height_cm,
-      abha_number: row.abha_number,
-      abha_address: row.abha_address,
-      abha_linked: row.abha_linked,
-      is_onboarding_complete: row.is_onboarding_complete,
-    };
+    let profileRes;
+
+    if (targetProfileId && uuidRegex.test(targetProfileId)) {
+      profileRes = await pool.query(
+        `SELECT 
+           id AS profile_id, name AS profile_name, relationship, is_primary,
+           gender, date_of_birth, blood_group, height_cm, allergies, abha_number,
+           abha_address, abha_linked, is_onboarding_complete
+         FROM profiles
+         WHERE id = $1 AND (owner_user_id = $2 OR id IN (
+           SELECT profile_id FROM caregiver_access WHERE caregiver_user_id = $2 AND status = 'active'
+         )) AND (is_archived = FALSE OR is_archived IS NULL)`,
+        [targetProfileId, user.id]
+      );
+    }
+
+    // fallback to Primary Profile if header omitted or invalid
+    if (!profileRes || profileRes.rows.length === 0) {
+      profileRes = await pool.query(
+        `SELECT 
+           id AS profile_id, name AS profile_name, relationship, is_primary,
+           gender, date_of_birth, blood_group, height_cm, allergies, abha_number,
+           abha_address, abha_linked, is_onboarding_complete
+         FROM profiles
+         WHERE owner_user_id = $1 AND is_primary = TRUE AND (is_archived = FALSE OR is_archived IS NULL)`,
+        [user.id]
+      );
+    }
+
+    const pRow = profileRes.rows[0] || null;
+
+    if (pRow) {
+      req.profile = {
+        id: pRow.profile_id,
+        name: pRow.profile_name,
+        relationship: pRow.relationship,
+        is_primary: pRow.is_primary,
+        gender: pRow.gender,
+        date_of_birth: pRow.date_of_birth,
+        blood_group: pRow.blood_group,
+        height_cm: pRow.height_cm,
+        allergies: pRow.allergies || [],
+        abha_number: pRow.abha_number,
+        abha_address: pRow.abha_address,
+        abha_linked: pRow.abha_linked,
+        is_onboarding_complete: pRow.is_onboarding_complete,
+      };
+    } else {
+      req.profile = null;
+    }
 
     next();
 

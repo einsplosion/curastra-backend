@@ -102,6 +102,11 @@ const onboardingSchema = Joi.object({
             "number.min": "Weight must be at least 1kg",
             "number.max": "Weight must not exceed 500kg",
         }),
+
+    allergies: Joi.array()
+        .items(Joi.string().trim())
+        .allow(null)
+        .optional(),
 })
 
 
